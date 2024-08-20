@@ -1,0 +1,35 @@
+﻿grain size (mm),section,marine or freshwater,lithology,sample,hornblende,oxy-hornblende,enstatite,hypersthene,augite,"epidote, clinozoisite",tremolite-actinolite,glaucophane,lawsonite,pumpellyite,sphene,zircon,garnet,rutile,apatite,tourmaline,# mica group,# opaque grains,# unidentifiable,total grains counted,percent mica,percent opaque,percent unidentifiable, percent identifiable,notes
+1/4-1/16,1,marine,fine sand,670-341-S-69,2,0,0,0,0,17,8,29,39,3,0,0,0,1,0,1,0,21,200,321,,,,31,reanalyzed by Hall
+1/4-1/16,2,marine,fine sand,670-341-S-76,34,3,0,0,0,22,3,4,17,0,3,2,4,0,4,4,5,20,144,269,,,,37,reanalyzed by Hall
+1/4-1/16,3,marine,fine sand,670-341-S-86,0,0,0,0,0,4,7,27,57,3,0,0,1,0,1,0,4,6,71,181,,,,55,reanalyzed by Hall
+1/4-1/16,4,marine,fine sand,670-341-S-91,1,1,0,0,0,16,3,15,57,0,4,1,0,0,1,1,3,35,112,250,,,,40,reanalyzed by Hall
+1/4-1/16,5,marine,fine sand,670-341-S-93,60,10,1,0,0,6,1,5,5,0,6,1,4,1,0,0,0,46,92,238,,,,42,reanalyzed by Hall
+1/4-1/16,,,dacite tuff,670-341-S-184,10,0,0,51,3,8,6,12,0,0,2,1,3,2,0,2,3,443,214,760,,,,13,reanalyzed by Hall
+1/2-1/20,1,marine,fine sand,341-S-65,19,2,0,0,0,2,18,19,16,0,4,12,6,1,0,1,,,,,0,16.9,58.1,25,recalculated from Johnson (1934)
+1/2-1/20,1,marine,fine sand,341-S-66,3,0,0,0,0,1,14,19,21,0,5,29,6,1,0,1,,,,,0,17.6,51,31,recalculated from Johnson (1934)
+1/2-1/20,1,marine,fine sand,341-S-67,12,1,0,0,0,3,12,18,33,0,3,12,5,0,0,1,,,,,0.6,18.2,55.2,26,recalculated from Johnson (1934)
+1/2-1/20,1,marine,fine sand,341-S-69,4,0,0,1,0,3,11,21,42,0,3,14,1,0,0,0,,,,,0,16.5,63.1,20,recalculated from Johnson (1934)
+1/2-1/20,1,marine,fine sand,341-S-71,9,2,0,0,0,10,9,17,31,0,6,12,2,2,0,0,,,,,0.3,16,68.9,15,recalculated from Johnson (1934)
+1/2-1/20,1,marine,fine sand,341-S-72,4,2,0,0,0,9,8,10,27,0,3,31,2,2,0,2,,,,,0,36.3,46.7,17,recalculated from Johnson (1934)
+1/2-1/20,2,marine,fine sand,341-S-75,0,0,0,0,0,2,2,26,55,0,2,9,0,2,0,2,,,,,0.6,12.8,73.8,13,recalculated from Johnson (1934)
+1/2-1/20,3,marine,fine sand,341-S-76,13,2,0,0,0,2,5,5,22,0,19,26,2,2,0,2,,,,,0,35.5,48.4,16,recalculated from Johnson (1934)
+1/2-1/20,3,marine,fine sand,341-S-77,2,0,0,0,0,8,8,12,26,0,13,27,2,2,0,0,,,,,0,28.3,55.6,16,recalculated from Johnson (1934)
+1/2-1/20,4,marine,fine sand,341-S-84,1,0,0,0,0,1,10,32,49,0,1,4,1,0,0,1,,,,,0.6,2.4,78.1,19,recalculated from Johnson (1934)
+1/2-1/20,4,marine,fine sand,341-S-85,1,0,0,0,0,1,10,21,56,0,1,7,1,1,0,1,,,,,0.6,4.7,73.3,21,recalculated from Johnson (1934)
+1/2-1/20,4,marine,fine sand,341-S-86,1,1,0,0,0,3,10,19,54,0,1,7,2,1,0,1,,,,,0.3,5.7,64.7,29,recalculated from Johnson (1934)
+1/2-1/20,4,marine,fine sand,341-S-87,1,1,0,0,0,1,18,12,36,0,5,17,7,1,0,1,,,,,0.3,12.8,63.6,23,recalculated from Johnson (1934)
+1/2-1/20,4,marine,fine sand,341-S-88,1,1,0,0,0,8,9,12,36,0,4,26,1,1,0,1,,,,,0.6,16.2,58.8,24,recalculated from Johnson (1934)
+1/2-1/20,4,marine,fine sand,341-S-90,0,0,0,0,0,7,5,18,55,0,2,9,4,0,0,0,,,,,0.6,3.7,82.2,14,recalculated from Johnson (1934)
+1/2-1/20,4,marine,fine sand,341-S-91,1,0,0,0,0,5,4,19,55,0,3,8,3,1,0,1,,,,,0.6,23.8,50.9,25,recalculated from Johnson (1934)
+1/2-1/20,4,marine,fine sand,341-S-92,28,7,0,0,0,4,4,9,26,0,7,9,4,1,0,1,,,,,0.6,19.9,59.9,20,recalculated from Johnson (1934)
+1/2-1/20,5,marine,fine sand,341-S-93,37,13,0,0,0,4,2,2,16,0,6,16,1,1,0,2,,,,,0.3,27.6,40.2,32,recalculated from Johnson (1934)
+1/2-1/20,5,marine,fine sand,341-S-94,54,19,0,0,1,1,1,1,6,0,5,8,1,1,0,1,,,,,0.3,21.5,38.2,40,recalculated from Johnson (1934)
+1/2-1/20,5,marine,fine sand,341-S-96,49,14,0,0,0,4,1,1,8,0,5,15,1,1,0,1,,,,,0.6,23.7,39.7,36,recalculated from Johnson (1934)
+1/2-1/20,5,marine,fine sand,341-S-97,23,1,0,0,0,2,4,7,30,0,5,23,3,1,0,1,,,,,0.6,26.7,52.9,20,recalculated from Johnson (1934)
+1/2-1/20,5,marine,fine sand,341-S-98,33,1,0,0,0,6,3,6,15,0,11,22,1,1,0,1,,,,,0.6,25.1,48.8,26,recalculated from Johnson (1934)
+1/2-1/20,,freshwater (Glen Ellen Fm),dacite tuff,341-S-181a,2,0,0,57,13,4,2,2,0,0,2,14,2,0,0,2,,,,,0,55.8,32.6,12,recalculated from Johnson (1934)
+1/2-1/20,,freshwater (Glen Ellen Fm),dacite tuff,341-S-184,2,2,0,36,13,2,14,12,6,0,3,6,4,0,0,0,,,,,0,62,22.8,15,recalculated from Johnson (1934)
+1/2-1/20,,freshwater (Glen Ellen Fm),dacite tuff,341-S-185,0,0,0,17,79,2,2,0,0,0,0,0,0,0,0,0,,,,,0,74.5,13.8,12,recalculated from Johnson (1934)
+1/2-1/20,,freshwater (Glen Ellen Fm),volcanic conglomerate,341-S-186,5,0,0,2,2,7,19,17,23,0,9,12,2,0,0,2,,,,,0,38.4,45.5,16,recalculated from Johnson (1934)
+1/2-1/20,,freshwater (Glen Ellen Fm),volcanic conglomerate,341-S-187a,3,0,0,42,50,0.5,1,0.5,0.5,0,0.5,0.5,0.5,0.5,0,0.5,,,,,0.6,37.9,15.2,46,recalculated from Johnson (1934)
+1/2-1/20,,freshwater (Glen Ellen Fm),volcanic conglomerate,341-S-187c,2,0,0,47,41,1,1,1,1,0,1,2,1,1,0,1,,,,,0,61,5.3,34,recalculated from Johnson (1934)

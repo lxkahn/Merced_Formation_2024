@@ -1,0 +1,3 @@
+tab	sites
+site	location	lat	lon	analysts	citations
+MF8	Thornton Beach	37.7	-122.5		This study

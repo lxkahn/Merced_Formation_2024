@@ -1,0 +1,10 @@
+﻿facies,width
+cover,0.3
+shelf,0.5
+nearshore,0.8
+foreshore,0.8
+embayment,0.6
+backshore,0.5
+pond/marsh,0.6
+aeolian dunes,0.7
+alluvial,0.9

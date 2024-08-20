@@ -1,0 +1,1036 @@
+---
+title: "Hall 1965 sed data"
+output: html_notebook
+---
+
+This notebook uses principal component analysis to investigate the nature of the provenance change within the Merced Formation. The heavy mineral data considered here come from the Hall (1965) unpublished master's thesis and samples that we sent to RockType for QEMSCAN analysis.
+
+
+NOTE: track down additional heavy mineral data, and syntheses of Hall (1965) data here:
+
+F.L. Wong, D.L. Woodrow, M. McGann
+Heavy mineral analysis for assessing the provenance of sandy sediment in the San Francisco Bay Coastal System
+Marine Geology, 345 (2013), pp. 170-180
+
+J.W. Johnson
+Bottom sediment characteristics near entrance to San Francisco Bay
+Technical Report HEL, 24-3, University of California Hydraulic Engineering Laboratory, Berkeley (1971)
+(27 pp.)
+
+T.E. Yancey, J.W. Lee
+Major heavy mineral assemblages and heavy mineral provinces of the central California coast region
+Geological Society of America Bulletin, 83 (1972), pp. 2099-2104
+
+
+
+```{r}
+# read in required packages
+
+library(ggplot2)
+library(reshape2)
+library(dplyr)
+library(robCompositions)
+library(ggmap)
+library(ggnewscale)
+library(readxl)
+```
+
+```{r}
+# read in Hall heavy mineral data
+
+dat <- read.csv("../data/Hall1965_data/combined_heavy_mineral_data.csv",header=TRUE)
+
+# make column of strat height in meters
+
+dat$strat.pos <- dat$height..ft.*0.3048
+
+# select columns with mineral data (excludes source, sample ID, and strat height columns)
+
+dat2 <- dat[,2:21]
+
+# add a very small number (.01) to each value because PCA has problems with zero values
+
+dat2 <- dat2+.01
+```
+
+```{r}
+# run robust pca on ilr-transformed data, using the a function from the "robCompositions" package. Notice you will get a warning that the covariance matrix has become singular during the iterations of the MCD algorithm —I don't *think* this is a huge issue but worth attention before publishing anything
+
+pca <- pcaCoDa(dat2) 
+
+# look at a scree plot visualize how much variance is explained by each component (in this case the plot suggest there is little need to pay attention to anything beyond the first 2 principal components)
+
+plot(pca)
+
+# extract proportion of total variance explained by pc1 and pc2
+
+pca1var <- pca$eigenvalues[1]/sum(pca$eigenvalues)
+pca2var <- pca$eigenvalues[2]/sum(pca$eigenvalues)
+
+# extract pc1 and pc2 scores for each sample, add to the dataframe
+
+pc1 <- pca$scores[,1]
+pc2 <- pca$scores[,2]
+pdat <- data.frame(dat,pc1,pc2)
+```
+
+```{r}
+# make one dataframe that is only Merced samples by omitting any row with an NA for strat. height
+
+mdat <- na.omit(pdat)
+
+# and another that is only the modern samples
+
+gdat <- pdat[(pdat$source != "Merced, upper" & pdat$source != "Merced, lower"),]
+```
+
+```{r}
+# extract the loadings (how much each PC is influenced by each mineral)
+
+pc1_loadings <- pca$loadings[,1]*12
+pc2_loadings <- pca$loadings[,2]*12
+mineral <- rownames(pca$loadings)
+loadings <- data.frame(pc1_loadings,pc2_loadings,mineral)
+```
+
+```{r}
+# make a biplot showing both sample scores and mineral loadings. There are canned functions that do this with one line of code but I want to customize it a bit by plotting different types of information on the modern and Merced samples —that's why this code seems so long and dense
+
+ggplot()+
+  geom_point(data=gdat,aes(x=pc1,y=pc2,pch=source),colour="gray")+
+  geom_point(data=mdat,aes(x=pc1,y=pc2,fill=strat.pos),pch=21,size=3)+
+  geom_segment(data=loadings,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings,aes(x=pc1_loadings,y=pc2_loadings,label=mineral),size=3,colour="brown")+
+  scale_shape_manual(values=c(1,3,4)) +
+  scale_fill_viridis_c()+
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(fill='Merced strat.pos.(m)') +
+  labs(pch='Modern samples') +
+  theme_bw()
+
+# plot pc1 versus strat. position
+
+ggplot()+
+  geom_line(data=mdat,aes(x=strat.pos,y=pc1),colour="gray")+
+  geom_point(data=mdat,aes(x=strat.pos,y=pc1,fill=strat.pos,pch=source))+
+  scale_shape_manual(values=c(21,22))+
+  scale_fill_viridis_c()+
+  xlab("stratigraphic position (m)")+
+  ylab("PC1")+
+  labs(fill='strat. pos. (m)') +
+  labs(pch='Unit') +
+  theme_bw()
+```
+
+```{r}
+# make a matrix of plots mapping mineral proportions onto the PCA space, to better visualize the loadings
+
+# first make a new dataframe including only the columns we want to work with — excludes cummingtonite (which occurs rarely and only in Sonoma volcanics), sample ID column, and strat height in feet (because imperial units are the worst)
+pdat2 <-pdat[,c(1:20,24:26)]
+
+# then reshape from wide to long format
+pdat3 <- melt(pdat2,id=c("source","strat.pos","pc1","pc2"))
+
+# now rescale values for each mineral so that plot emphasize variation for that mineral
+pdat4 <- pdat3 %>% 
+  group_by(variable) %>%
+  mutate(val_norm = value/max(value))
+
+# map relative variation in each mineral onto PCA plot
+ggplot(pdat4,aes(pc1,pc2,colour=log(val_norm),pch=source))+
+  geom_point() +
+  facet_wrap(~variable,ncol=5)+
+  scale_colour_viridis_c(option="plasma",na.value="gray78")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+```
+
+Since the "Sonoma Volcanics" are not contributing significantly to the Merced, removing them from the analysis may make the differences between the upper and lower Merced clearer.
+```{r}
+# remove Sonoma volcanics
+
+dat <- dat[(dat$source != "Sonoma Volcanics" & dat$source != "SV/Franciscan"),]
+```
+
+Repeat same analysis as above, but with the Sonoma Volcanics omitted
+```{r}
+# select columns with mineral data (excludes source, sample ID, and strat height columns)
+
+dat2 <- dat[,2:21]
+
+# add a very small number (.01) to each value because PCA has problems with zero values
+
+dat2 <- dat2+.01
+
+# run robust pca on ilr-transformed data, using the a function from the "robCompositions" package. Notice you will get a warning that the covariance matrix has become singular during the iterations of the MCD algorithm —I don't *think* this is a huge issue but worth attention before publishing anything
+
+pca <- pcaCoDa(dat2) 
+
+# look at a scree plot visualize how much variance is explained by each component (in this case the plot suggest there is little need to pay attention to anything beyond the first 2 principal components)
+
+plot(pca)
+
+# extract proportion of total variance explained by pc1 and pc2
+
+pca1var <- pca$eigenvalues[1]/sum(pca$eigenvalues)
+pca2var <- pca$eigenvalues[2]/sum(pca$eigenvalues)
+
+# extract pc1 and pc2 scores for each sample, add to the dataframe
+
+pc1 <- pca$scores[,1]
+pc2 <- pca$scores[,2]
+pdat <- data.frame(dat,pc1,pc2)
+
+# make one dataframe that is only Merced samples by omitting any row with an NA for strat. height
+
+mdat <- na.omit(pdat)
+
+# and another that is only the modern samples
+
+gdat <- pdat[(pdat$source != "Merced, upper" & pdat$source != "Merced, lower"),]
+
+# also extract the loadings (how much each PC is influenced by each mineral)
+
+pc1_loadings <- pca$loadings[,1]*12
+pc2_loadings <- pca$loadings[,2]*12
+mineral <- rownames(pca$loadings)
+loadings <- data.frame(pc1_loadings,pc2_loadings,mineral)
+
+# calculate convex hulls for the modern samples
+hulls <- gdat %>% group_by(source) %>% slice(chull(pc1,pc2))
+
+# make a biplot showing both sample scores and mineral loadings. There are canned functions that do this with one line of code but I want to customize it a bit by plotting different types of information on the modern and Merced samples —that's why this code seems so long and dense
+
+ggplot()+
+  geom_polygon(data = hulls, alpha = 0.2, aes(x=pc1, y=pc2, fill=source)) + 
+  geom_point(data=gdat,aes(x=pc1,y=pc2,pch=source),colour="gray")+
+  geom_point(data=mdat,aes(x=pc1,y=pc2,color=source),size=3)+
+  geom_segment(data=loadings,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings,aes(x=pc1_loadings+.3*sign(pc1_loadings),y=pc2_loadings+.3*sign(pc2_loadings),label=mineral),size=3,colour="brown")+
+  scale_shape_manual(values=c(3,4,2,1)) +
+  scale_color_manual(values=c("#0072B2", "#D55E00"), labels=c('Lower Merced', 'Upper Merced')) +
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(fill='Source') +
+  labs(pch='Modern samples') +
+  labs(color='Merced samples') +
+  theme_bw()
+
+# make a biplot showing both sample scores and mineral loadings. There are canned functions that do this with one line of code but I want to customize it a bit by plotting different types of information on the modern and Merced samples —that's why this code seems so long and dense
+
+ggplot()+
+  geom_point(data=gdat,aes(x=pc1,y=pc2,pch=source),colour="gray")+
+  geom_point(data=mdat,aes(x=pc1,y=pc2,fill=strat.pos),pch=21,size=3)+
+  geom_segment(data=loadings,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings,aes(x=pc1_loadings,y=pc2_loadings,label=mineral),size=3,colour="brown")+
+  scale_shape_manual(values=c(1,3,4)) +
+  scale_fill_viridis_c()+
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(fill='Merced strat.pos.(m)') +
+  labs(pch='Modern samples') +
+  theme_bw()
+
+# plot pc1 versus strat. position
+
+ggplot()+
+  geom_line(data=mdat,aes(x=strat.pos,y=pc1),colour="gray")+
+  geom_point(data=mdat,aes(x=strat.pos,y=pc1,fill=strat.pos,pch=source))+
+  scale_shape_manual(values=c(21,22))+
+  scale_fill_viridis_c()+
+  xlab("stratigraphic position (m)")+
+  ylab("PC1")+
+  labs(fill='strat. pos. (m)') +
+  labs(pch='Unit') +
+  theme_bw()
+
+# make a matrix of plots mapping mineral proportions onto the PCA space, to better visualize the loadings
+
+# first make a new dataframe including only the columns we want to work with — excludes cummingtonite (which occurs rarely and only in Sonoma volcanics), sample ID column, and strat height in feet (because imperial units are the worst)
+pdat2 <-pdat[,c(1:20,24:26)]
+
+# then reshape from wide to long format
+pdat3 <- melt(pdat2,id=c("source","strat.pos","pc1","pc2"))
+
+# now rescale values for each mineral so that plot emphasize variation for that mineral
+pdat4 <- pdat3 %>% 
+  group_by(variable) %>%
+  mutate(val_norm = value/max(value))
+
+# map relative variation in each mineral onto PCA plot
+ggplot(pdat4,aes(pc1,pc2,colour=log(val_norm),pch=source))+
+  geom_point() +
+  facet_wrap(~variable,ncol=5)+
+  scale_colour_viridis_c(option="plasma",na.value="gray78")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+```
+
+Plot maps of mineral % variation in modern samples
+```{r}
+dat <- read.csv("../data/Hall1965_data/combined_heavy_mineral_data.csv",header=TRUE)
+GVcoords <- read.csv("../data/Hall1965_data/GreatValley_sample_coords.csv")
+SVcoords <- read.csv("../data/Hall1965_data/SonomaVolcanics_sample_coords.csv")
+SFcoords <- read.csv("../data/Hall1965_data/SFBay_sample_coords.csv")
+coords <- rbind(GVcoords,SVcoords,SFcoords)
+
+samps <- dat[(dat$source == "Great Valley" | dat$source == "Sonoma Volcanics" |  dat$source == "SF Bay"),]
+
+mapdat <- left_join(samps,coords, by=c('sample'='Sample'))
+
+cal <- get_stamenmap(bbox = c(left = -123.2, bottom = 36.8, right =
+  -119.5, top = 39.8), zoom = 8, maptype = c("terrain"))
+
+mins <- names(dat)[2:21]
+
+for(i in mins){
+  df <- mapdat %>% select(X,Y,i)
+  ggmap(cal)+
+  geom_point(data=df,aes(x=X,y=Y,colour=df[,3]),size=1)+
+    scale_colour_viridis_c(option="plasma")+
+    labs(colour=i)+
+    theme(axis.title.x = element_blank(),axis.title.y = element_blank(),axis.text.x=element_blank(),axis.text.y=element_blank(),axis.ticks.x=element_blank(),axis.ticks.y=element_blank())
+#ggsave(paste('../data/Hall1965_data/mineral_maps/',i,"_map",".pdf",sep=''),width=4,height=4)
+}
+```
+Make an ordination of just modern samples, and plot PC1 and PC2 on a map
+```{r}
+datmod <- dat[(dat$source != "Merced, lower" & dat$source != "Merced, upper"),] 
+
+# select columns to include (excludes cummingtonite which occurs rarely and only in Sonoma volcanics)
+
+dat2 <- datmod[,2:20]
+
+# add a very small number (.01) to each value because PCA has problems with zero values
+
+dat2 <- dat2+.01
+
+pca <- pcaCoDa(dat2) 
+
+# look at a scree plot visualize how much variance is explained by each component (in this case the plot suggest there is little need to pay attention to anything beyond the first 2 principal components)
+
+plot(pca)
+
+# extract proportion of total variance explained by pc1 and pc2
+
+pca1var <- pca$eigenvalues[1]/sum(pca$eigenvalues)
+pca2var <- pca$eigenvalues[2]/sum(pca$eigenvalues)
+
+# extract pc1 and pc2 scores for each sample, add to the dataframe
+
+pc1 <- pca$scores[,1]
+pc2 <- pca$scores[,2]
+pdat <- data.frame(datmod,pc1,pc2)
+
+# also extract the loadings (how much each PC is influenced by each mineral)
+
+pc1_loadings <- pca$loadings[,1]*12
+pc2_loadings <- pca$loadings[,2]*12
+mineral <- rownames(pca$loadings)
+loadings <- data.frame(pc1_loadings,pc2_loadings,mineral)
+
+# make a biplot showing both sample scores and mineral loadings. There are canned functions that do this with one line of code but I want to customize it a bit by plotting different types of information on the modern and merced samples —that's why this code seems so long and dense
+
+ggplot()+
+  geom_point(data=pdat,aes(x=pc1,y=pc2,colour=source))+
+  geom_segment(data=loadings,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings,aes(x=pc1_loadings,y=pc2_loadings,label=mineral),size=3,colour="brown")+
+  xlab("PC1")+
+  ylab("PC2")+
+  theme_bw()
+
+
+mapdat <- left_join(pdat,coords, by=c('sample'='Sample'))
+
+cal <- get_stamenmap(bbox = c(left = -123.2, bottom = 36.8, right =
+  -119.5, top = 39.8), zoom = 8, maptype = c("terrain"))
+
+  ggmap(cal)+
+  geom_point(data=mapdat,aes(x=X,y=Y,colour=pc1))+
+    scale_colour_viridis_c(option="plasma")+
+    theme(axis.title.x = element_blank(),axis.title.y = element_blank(),axis.text.x=element_blank(),axis.text.y=element_blank(),axis.ticks.x=element_blank(),axis.ticks.y=element_blank())
+```
+Make an ordination of just lower Merced samples to see if there is any relationship between mineral composition and facies
+```{r}
+# read in Hall heavy mineral data
+
+dat <- read.csv("../data/Hall1965_data/combined_heavy_mineral_data.csv",header=TRUE)
+
+dat$strat.pos <- dat$height..ft.*0.3048
+
+dat <- dat[(dat$source == "Merced, lower"),]
+
+dat2 <- dat[,2:20]
+
+dat2 <- dat2+.01
+
+pca <- pcaCoDa(dat2) 
+
+plot(pca)
+
+pca1var <- pca$eigenvalues[1]/sum(pca$eigenvalues)
+pca2var <- pca$eigenvalues[2]/sum(pca$eigenvalues)
+
+pc1 <- pca$scores[,1]
+pc2 <- pca$scores[,2]
+mdat <- data.frame(dat,pc1,pc2)
+
+pc1_loadings <- pca$loadings[,1]*12
+pc2_loadings <- pca$loadings[,2]*12
+mineral <- rownames(pca$loadings)
+loadings <- data.frame(pc1_loadings,pc2_loadings,mineral)
+
+ggplot()+
+  geom_point(data=mdat,aes(x=pc1,y=pc2,fill=strat.pos),pch=21,size=3)+
+  geom_segment(data=loadings,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings,aes(x=pc1_loadings,y=pc2_loadings,label=mineral),size=3,colour="brown")+
+  scale_shape_manual(values=c(1,3)) +
+  scale_fill_viridis_c()+
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(fill='Merced strat.pos.(m)') +
+  labs(pch='Modern samples') +
+  theme_bw()
+
+# plot pc1 versus strat. position
+
+ggplot()+
+  geom_line(data=mdat,aes(x=strat.pos,y=pc1),colour="gray")+
+  geom_point(data=mdat,aes(x=strat.pos,y=pc1,fill=strat.pos),pch=21)+
+  scale_fill_viridis_c()+
+  xlab("stratigraphic position (m)")+
+  ylab("PC1")+
+  labs(fill='strat. pos. (m)') +
+  labs(pch='Unit') +
+  theme_bw()
+```
+Some of the "Sonoma Volcanics" samples, specifically the ones along Petaluma Creek, have high percentages of glaucophane and lawsonite, which may reflect the mineralogy of Franciscan sources which are also being drained by the Petaluma Creek system. It may be useful to use these samples as representatives of the "Franciscan" source rather than the modern SF Bay sediments, which are being flooded by Sierran detritus from the Sacramento and San Joaquin Rivers.
+
+PCA of just the Sonoma Volcanics samples, to see if the Petaluma Creek samples group separately from the others:
+```{r}
+# read in Hall heavy mineral data
+
+dat <- read.csv("../data/Hall1965_data/combined_heavy_mineral_data.csv",header=TRUE)
+
+# select only the Sonoma Volcanics samples
+
+SV_dat <- dat[(dat$source == "Sonoma Volcanics"),]
+
+# add watershed ID column
+SV_dat$watershed <- rep(c("Napa River", "Sonoma Creek", "Petaluma Creek"),times=c(8,5,5))
+
+# drop rutile, andalusite, glauconite, and cummingtonite as they only show up in 1 or fewer of the samples and in very small amounts
+
+SV_dat2 <- SV_dat[,c(2:14,16,17,20)]
+
+# add a very small number (.01) to each value because PCA has problems with zero values
+
+SV_dat2 <- SV_dat2+.01
+
+# run robust pca on ilr-transformed data, using the a function from the "robCompositions" package.
+
+pca <- pcaCoDa(SV_dat2) 
+
+# look at a scree plot visualize how much variance is explained by each component (in this case the plot suggest there is little need to pay attention to anything beyond the first 2 principal components)
+
+plot(pca)
+
+# extract proportion of total variance explained by pc1 and pc2
+
+pca1var <- pca$eigenvalues[1]/sum(pca$eigenvalues)
+pca2var <- pca$eigenvalues[2]/sum(pca$eigenvalues)
+
+# extract pc1 and pc2 scores for each sample, add to the dataframe
+
+pc1 <- pca$scores[,1]
+pc2 <- pca$scores[,2]
+mdat <- data.frame(SV_dat,pc1,pc2)
+
+# also extract the loadings (how much each PC is influenced by each mineral)
+
+pc1_loadings <- pca$loadings[,1]*12
+pc2_loadings <- pca$loadings[,2]*12
+mineral <- rownames(pca$loadings)
+loadings <- data.frame(pc1_loadings,pc2_loadings,mineral)
+
+# make a biplot showing both sample scores and mineral loadings.
+
+ggplot()+
+  geom_point(data=mdat,aes(x=pc1,y=pc2,fill=watershed),pch=21,size=3)+
+  geom_segment(data=loadings,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings,aes(x=pc1_loadings,y=pc2_loadings,label=mineral),size=3,colour="brown")+
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(fill='watershed') +
+  theme_bw()
+
+```
+
+Repeat PCA labelling the Petaluma Creek samples as separate from the other Sonoma Volcanics
+```{r}
+dat <- read.csv("../data/Hall1965_data/combined_heavy_mineral_data.csv",header=TRUE)
+
+dat$strat.pos <- dat$height..ft.*0.3048
+
+# rename Petaluma Creek Sonoma Volcanics sample source to Marin Headlands
+dat$source[c(86:90)] <- 'Marin Headlands'
+
+# select columns with mineral data (excludes source, sample ID, and strat height columns)
+
+dat2 <- dat[,2:21]
+
+# add a very small number (.01) to each value because PCA has problems with zero values
+
+dat2 <- dat2+.01
+
+# run robust pca on ilr-transformed data, using the a function from the "robCompositions" package. Notice you will get a warning that the covariance matrix has become singular during the iterations of the MCD algorithm —I don't *think* this is a huge issue but worth attention before publishing anything
+
+pca <- pcaCoDa(dat2) 
+
+# look at a scree plot visualize how much variance is explained by each component (in this case the plot suggest there is little need to pay attention to anything beyond the first 2 principal components)
+
+plot(pca)
+
+# extract proportion of total variance explained by pc1 and pc2
+
+pca1var <- pca$eigenvalues[1]/sum(pca$eigenvalues)
+pca2var <- pca$eigenvalues[2]/sum(pca$eigenvalues)
+
+# extract pc1 and pc2 scores for each sample, add to the dataframe
+
+pc1 <- pca$scores[,1]
+pc2 <- pca$scores[,2]
+pdat <- data.frame(dat,pc1,pc2)
+
+# make one dataframe that is only Merced samples by omitting any row with an NA for strat. height
+
+mdat <- na.omit(pdat)
+
+# and another that is only the modern samples
+
+gdat <- pdat[(pdat$source != "Merced, upper" & pdat$source != "Merced, lower"),]
+
+# calculate convex hulls for the modern samples
+hulls <- gdat %>% group_by(source) %>% slice(chull(pc1,pc2))
+
+# also extract the loadings (how much each PC is influenced by each mineral)
+
+pc1_loadings <- pca$loadings[,1]*12
+pc2_loadings <- pca$loadings[,2]*12
+mineral <- rownames(pca$loadings)
+loadings <- data.frame(pc1_loadings,pc2_loadings,mineral)
+
+# filter out low mineral loadings
+loadings_filtered <- loadings[abs(loadings$pc1_loadings) > 1.5 | abs(loadings$pc2_loadings) >1.5,]
+
+# make a biplot showing both sample scores and mineral loadings. There are canned functions that do this with one line of code but I want to customize it a bit by plotting different types of information on the modern and Merced samples —that's why this code seems so long and dense
+
+ggplot()+
+  geom_polygon(data = hulls, alpha = 0.2, aes(x=pc1, y=pc2, fill=source)) + 
+  geom_point(data=gdat,aes(x=pc1,y=pc2,pch=source),colour="gray")+
+  geom_point(data=mdat,aes(x=pc1,y=pc2,color=source),size=3)+
+  geom_segment(data=loadings_filtered,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings_filtered,aes(x=pc1_loadings+.3*sign(pc1_loadings),y=pc2_loadings+.3*sign(pc2_loadings),label=mineral),size=3,colour="brown")+
+  scale_shape_manual(values=c(3,1,2,4)) +
+  scale_color_manual(values=c("#0072B2","#D55E00"), labels=c('Lower Merced', 'Upper Merced')) +
+  coord_cartesian(xlim=c(-10,10))+
+  xlab(paste("PC1 (", format((pca1var*100), digits=4), "%)", sep="", collapse=""))+
+  ylab(paste("PC2 (", format((pca2var*100), digits=4), "%)", sep="", collapse=""))+
+  labs(fill='Source') +
+  labs(pch='Modern samples') +
+  labs(color='Merced samples') +
+  guides(color = guide_legend(order=1, reverse = TRUE)) +
+  theme_bw()
+ggsave("pca_with_sonoma_volcanics.pdf")
+
+ggplot()+
+  geom_polygon(data = hulls, alpha = 0.2, aes(x=pc1, y=pc2, fill=source)) + 
+  geom_point(data=gdat,aes(x=pc1,y=pc2,pch=source),colour="gray")+
+  geom_point(data=mdat,aes(x=pc1,y=pc2,color=source),size=3)+
+  scale_shape_manual(values=c(3,4,2,1)) +
+  scale_color_manual(values=c("#0072B2", "#D55E00"), labels=c('Lower Merced', 'Upper Merced')) +
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(fill='Source') +
+  labs(pch='Modern samples') +
+  labs(color='Merced samples') +
+  theme_bw()
+
+ggplot()+
+  geom_point(data=gdat,aes(x=pc1,y=pc2,pch=source),colour="black")+
+  geom_polygon(data = hulls, alpha = 0.2, aes(x=pc1, y=pc2,fill=source)) + 
+  scale_shape_manual(values=c(3,1,2,4)) +
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(fill='Source') +
+  labs(pch='Modern samples') +
+  theme_bw()
+
+# plot pc1 versus strat. position
+
+ggplot()+
+  geom_line(data=mdat,aes(x=strat.pos,y=pc1),colour="gray")+
+  geom_point(data=mdat,aes(x=strat.pos,y=pc1,fill=pc1,pch=source))+
+  scale_shape_manual(values=c(21,22))+
+  scale_fill_viridis_c(option='plasma')+
+  xlab("stratigraphic position (m)")+
+  ylab("PC1")+
+  labs(fill='PC1') +
+  labs(pch='Unit') +
+  theme_bw()
+
+# make a matrix of plots mapping mineral proportions onto the PCA space, to better visualize the loadings
+
+# first make a new dataframe including only the columns we want to work with — excludes cummingtonite (which occurs rarely and only in Sonoma volcanics), sample ID column, and strat height in feet (because imperial units are the worst)
+pdat2 <-pdat[,c(1:20,24:26)]
+
+# then reshape from wide to long format
+pdat3 <- melt(pdat2,id=c("source","strat.pos","pc1","pc2"))
+
+# now rescale values for each mineral so that plot emphasize variation for that mineral
+pdat4 <- pdat3 %>% 
+  group_by(variable) %>%
+  mutate(val_norm = value/max(value))
+
+# map relative variation in each mineral onto PCA plot
+ggplot(pdat4,aes(pc1,pc2,colour=log(val_norm),pch=source))+
+  geom_point() +
+  facet_wrap(~variable,ncol=5)+
+  scale_colour_viridis_c(option="plasma",na.value="gray78")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+# plot PC1 and PC2 on a map
+mapdat <- left_join(pdat,coords, by=c('sample'='Sample'))
+
+cal <- get_stamenmap(bbox = c(left = -123.2, bottom = 36.8, right =
+  -119.5, top = 39.8), zoom = 8, maptype = c("terrain"))
+
+ggmap(cal)+
+  geom_point(data=mapdat,aes(x=X,y=Y,colour=pc1))+
+  scale_colour_viridis_c(option="plasma")+
+  theme(axis.title.x = element_blank(),axis.title.y = element_blank(),axis.text.x=element_blank(),axis.text.y=element_blank(),axis.ticks.x=element_blank(),axis.ticks.y=element_blank())
+```
+
+Repeat PCA removing all Sonoma Volcanics samples except for Petaluma Creek
+```{r}
+dat <- read.csv("../data/Hall1965_data/combined_heavy_mineral_data.csv",header=TRUE)
+
+dat$strat.pos <- dat$height..ft.*0.3048
+
+# rename Petaluma Creek Sonoma Volcanics sample source to Marin Headlands
+dat$source[c(86:90)] <- 'Marin Headlands'
+
+# remove other Sonoma Volcanics samples
+dat <- dat[dat$source != "Sonoma Volcanics",]
+
+# select columns with mineral data (excludes source, sample ID, and strat height columns)
+
+dat2 <- dat[,2:21]
+
+# add a very small number (.01) to each value because PCA has problems with zero values
+
+dat2 <- dat2+.01
+
+# run robust pca on ilr-transformed data, using the a function from the "robCompositions" package. Notice you will get a warning that the covariance matrix has become singular during the iterations of the MCD algorithm —I don't *think* this is a huge issue but worth attention before publishing anything
+
+pca <- pcaCoDa(dat2) 
+
+# look at a scree plot visualize how much variance is explained by each component (in this case the plot suggest there is little need to pay attention to anything beyond the first 2 principal components)
+
+plot(pca)
+
+# extract proportion of total variance explained by pc1 and pc2
+
+pca1var <- pca$eigenvalues[1]/sum(pca$eigenvalues)
+pca2var <- pca$eigenvalues[2]/sum(pca$eigenvalues)
+
+# extract pc1 and pc2 scores for each sample, add to the dataframe
+
+pc1 <- pca$scores[,1]
+pc2 <- pca$scores[,2]
+pdat <- data.frame(dat,pc1,pc2)
+
+# make one dataframe that is only Merced samples by omitting any row with an NA for strat. height
+
+mdat <- na.omit(pdat)
+
+# and another that is only the modern samples
+
+gdat <- pdat[(pdat$source != "Merced, upper" & pdat$source != "Merced, lower"),]
+
+# calculate convex hulls for the modern samples
+hulls <- gdat %>% group_by(source) %>% slice(chull(pc1,pc2))
+
+# also extract the loadings (how much each PC is influenced by each mineral)
+
+pc1_loadings <- pca$loadings[,1]*12
+pc2_loadings <- pca$loadings[,2]*12
+mineral <- rownames(pca$loadings)
+loadings <- data.frame(pc1_loadings,pc2_loadings,mineral)
+
+# filter out low mineral loadings
+loadings_filtered <- loadings[abs(loadings$pc1_loadings) > 1.5 | abs(loadings$pc2_loadings) >1.5,]
+
+# make a biplot showing both sample scores and mineral loadings. There are canned functions that do this with one line of code but I want to customize it a bit by plotting different types of information on the modern and Merced samples —that's why this code seems so long and dense
+
+ggplot()+
+  geom_polygon(data = hulls, alpha = 0.2, aes(x=pc1, y=pc2, fill=source)) + 
+  geom_point(data=gdat,aes(x=pc1,y=pc2,pch=source),colour="gray")+
+  geom_point(data=mdat,aes(x=pc1,y=pc2,color=source),size=3)+
+  geom_segment(data=loadings_filtered,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings_filtered,aes(x=pc1_loadings+.3*sign(pc1_loadings),y=pc2_loadings+.3*sign(pc2_loadings),label=mineral),size=3,colour="brown")+
+  scale_shape_manual(values=c(3,1,2)) +
+  scale_color_manual(values=c("#0072B2", "#D55E00"), labels=c('Lower Merced', 'Upper Merced')) +
+  coord_cartesian(xlim=c(-10,10))+
+  xlab(paste("PC1 (", format((pca1var*100), digits=4), "%)", sep="", collapse=""))+
+  ylab(paste("PC2 (", format((pca2var*100), digits=4), "%)", sep="", collapse=""))+
+  labs(color='Merced samples') +
+  guides(color = guide_legend(order=1, reverse = TRUE)) +
+  labs(pch='Modern samples') +
+  labs(fill='Source') +
+  theme_bw()
+ggsave("pca_plot.pdf")
+
+ggplot()+
+  geom_polygon(data = hulls, alpha = 0.2, aes(x=pc1, y=pc2, fill=source)) + 
+  geom_point(data=gdat,aes(x=pc1,y=pc2,pch=source),colour="gray")+
+  geom_point(data=mdat,aes(x=pc1,y=pc2,color=source),size=3)+
+  scale_shape_manual(values=c(3,16,18,4,2,1)) +
+  scale_color_manual(values=c("#0072B2", "#D55E00")) +
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(fill='Source') +
+  labs(pch='Modern samples') +
+  labs(color='Merced samples') +
+  theme_bw()
+
+ggplot()+
+  geom_point(data=gdat,aes(x=pc1,y=pc2,pch=source),colour="black")+
+  geom_polygon(data = hulls, alpha = 0.2, aes(x=pc1, y=pc2,fill=source)) + 
+  scale_shape_manual(values=c(3,4,2,1)) +
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(fill='Source') +
+  labs(pch='Modern samples') +
+  theme_bw()
+
+# plot pc1 versus strat. position
+
+ggplot()+
+  geom_line(data=mdat,aes(x=strat.pos,y=pc1),colour="gray")+
+  geom_point(data=mdat,aes(x=strat.pos,y=pc1,fill=pc1,pch=source), size=3)+
+  scale_shape_manual(values=c(21, 22),labels=c("Lower Merced", "Upper Merced"))+
+  scale_fill_viridis_c(option='plasma', direction=-1)+
+  coord_flip()+
+  xlab("Stratigraphic height (m)")+
+  ylab("PC1")+
+  labs(fill='PC1') +
+  labs(pch='Unit') +
+  guides(pch = guide_legend(order=1, reverse = TRUE)) +
+  theme_classic()
+ggsave("pc1_strat_height.pdf", height=8, width=5)
+
+# make a matrix of plots mapping mineral proportions onto the PCA space, to better visualize the loadings
+
+# first make a new dataframe including only the columns we want to work with — excludes cummingtonite (which occurs rarely and only in Sonoma volcanics), sample ID column, and strat height in feet (because imperial units are the worst)
+pdat2 <-pdat[,c(1:20,24:26)]
+
+# then reshape from wide to long format
+pdat3 <- melt(pdat2,id=c("source","strat.pos","pc1","pc2"))
+
+# now rescale values for each mineral so that plot emphasize variation for that mineral
+pdat4 <- pdat3 %>% 
+  group_by(variable) %>%
+  mutate(val_norm = value/max(value))
+
+# map relative variation in each mineral onto PCA plot
+ggplot(pdat4,aes(pc1,pc2,colour=log(val_norm),pch=source))+
+  geom_point() +
+  facet_wrap(~variable,ncol=5)+
+  scale_colour_viridis_c(option="plasma",na.value="gray78")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+# plot PC1 and PC2 on a map
+mapdat <- left_join(pdat,coords, by=c('sample'='Sample'))
+
+cal <- get_stamenmap(bbox = c(left = -123.2, bottom = 36.8, right =
+  -119.5, top = 39.8), zoom = 8, maptype = c("terrain"))
+
+ggmap(cal)+
+  geom_point(data=mapdat,aes(x=X,y=Y,colour=pc1))+
+  scale_colour_viridis_c(option="plasma")+
+  theme(axis.title.x = element_blank(),axis.title.y = element_blank(),axis.text.x=element_blank(),axis.text.y=element_blank(),axis.ticks.x=element_blank(),axis.ticks.y=element_blank())
+```
+
+Make an ordination of just SF Bay, Great Valley, and Petaluma Creek samples, and plot PC1 and PC2 on a map
+```{r}
+datmod <- dat[(dat$source != "Merced, lower" & dat$source != "Merced, upper"),] 
+
+# select columns to include (excludes cummingtonite which occurs rarely and only in Sonoma volcanics)
+
+dat2 <- datmod[,2:20]
+
+# add a very small number (.01) to each value because PCA has problems with zero values
+
+dat2 <- dat2+.01
+
+pca <- pcaCoDa(dat2) 
+
+# look at a scree plot visualize how much variance is explained by each component (in this case the plot suggest there is little need to pay attention to anything beyond the first 2 principal components)
+
+plot(pca)
+
+# extract proportion of total variance explained by pc1 and pc2
+
+pca1var <- pca$eigenvalues[1]/sum(pca$eigenvalues)
+pca2var <- pca$eigenvalues[2]/sum(pca$eigenvalues)
+
+# extract pc1 and pc2 scores for each sample, add to the dataframe
+
+pc1 <- pca$scores[,1]
+pc2 <- pca$scores[,2]
+pdat <- data.frame(datmod,pc1,pc2)
+
+# also extract the loadings (how much each PC is influenced by each mineral)
+
+pc1_loadings <- pca$loadings[,1]*12
+pc2_loadings <- pca$loadings[,2]*12
+mineral <- rownames(pca$loadings)
+loadings <- data.frame(pc1_loadings,pc2_loadings,mineral)
+
+# make a biplot showing both sample scores and mineral loadings. There are canned functions that do this with one line of code but I want to customize it a bit by plotting different types of information on the modern and merced samples —that's why this code seems so long and dense
+
+ggplot()+
+  geom_point(data=pdat,aes(x=pc1,y=pc2,colour=source))+
+  geom_segment(data=loadings,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings,aes(x=pc1_loadings,y=pc2_loadings,label=mineral),size=3,colour="brown")+
+  xlab("PC1")+
+  ylab("PC2")+
+  theme_bw()
+
+
+mapdat <- left_join(pdat,coords, by=c('sample'='Sample'))
+
+cal <- get_stamenmap(bbox = c(left = -123.2, bottom = 36.8, right =
+  -119.5, top = 39.8), zoom = 8, maptype = c("terrain"))
+
+ggmap(cal)+
+  geom_point(data=mapdat,aes(x=X,y=Y,colour=pc1))+
+  scale_colour_viridis_c(option="plasma")+
+  theme(axis.title.x = element_blank(),axis.title.y = element_blank(),axis.text.x=element_blank(),axis.text.y=element_blank(),axis.ticks.x=element_blank(),axis.ticks.y=element_blank())
+  
+ggmap(cal)+
+  geom_point(data=mapdat,aes(x=X,y=Y,colour=pc2))+
+  scale_colour_viridis_c(option="plasma")+
+  theme(axis.title.x = element_blank(),axis.title.y = element_blank(),axis.text.x=element_blank(),axis.text.y=element_blank(),axis.ticks.x=element_blank(),axis.ticks.y=element_blank())
+```
+
+
+Test plots
+```{r}
+ggplot()+
+  geom_polygon(data = hulls, alpha = 0.2, aes(x=pc1, y=pc2, fill=source)) + 
+  geom_point(data=gdat,aes(x=pc1,y=pc2,pch=source),colour="gray")+
+  new_scale_fill()+
+  geom_point(data=mdat,aes(x=pc1,y=pc2,fill=strat.pos),pch=21,size=3)+
+  scale_fill_viridis_c()+
+  geom_segment(data=loadings,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings,aes(x=pc1_loadings+.3*sign(pc1_loadings),y=pc2_loadings+.3*sign(pc2_loadings),label=mineral),size=3,colour="brown")+
+  scale_shape_manual(values=c(3,16,18,4,2,1)) +
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(fill='Strat height') +
+  labs(pch='Modern samples') +
+  theme_bw()
+```
+
+```{r}
+dat <- read.csv("../data/Hall1965_data/combined_heavy_mineral_data.csv",header=TRUE)
+
+
+# remove other Sonoma Volcanics samples
+dat <- dat[(dat$source == "Merced, upper" | dat$source == "Merced, lower"),]
+
+# select columns with mineral data (excludes source, sample ID, and strat height columns)
+
+dat2 <- dat[,2:21]
+
+# add a very small number (.01) to each value because PCA has problems with zero values
+
+dat2 <- dat2+.01
+
+# run robust pca on ilr-transformed data, using the a function from the "robCompositions" package. Notice you will get a warning that the covariance matrix has become singular during the iterations of the MCD algorithm —I don't *think* this is a huge issue but worth attention before publishing anything
+
+pca <- pcaCoDa(dat2) 
+
+# look at a scree plot visualize how much variance is explained by each component (in this case the plot suggest there is little need to pay attention to anything beyond the first 2 principal components)
+
+plot(pca)
+
+# extract proportion of total variance explained by pc1 and pc2
+
+pca1var <- pca$eigenvalues[1]/sum(pca$eigenvalues)
+pca2var <- pca$eigenvalues[2]/sum(pca$eigenvalues)
+
+# extract pc1 and pc2 scores for each sample, add to the dataframe
+
+pc1 <- pca$scores[,1]
+pc2 <- pca$scores[,2]
+pdat <- data.frame(dat,pc1,pc2)
+
+
+# also extract the loadings (how much each PC is influenced by each mineral)
+
+pc1_loadings <- pca$loadings[,1]*12
+pc2_loadings <- pca$loadings[,2]*12
+mineral <- rownames(pca$loadings)
+loadings <- data.frame(pc1_loadings,pc2_loadings,mineral)
+
+# make a biplot showing both sample scores and mineral loadings. There are canned functions that do this with one line of code but I want to customize it a bit by plotting different types of information on the modern and Merced samples —that's why this code seems so long and dense
+
+ggplot()+
+  geom_point(data=pdat,aes(x=pc1,y=pc2,color=source),size=3)+
+  geom_segment(data=loadings,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings,aes(x=pc1_loadings+.3*sign(pc1_loadings),y=pc2_loadings+.3*sign(pc2_loadings),label=mineral),size=3,colour="brown")+
+  scale_color_manual(values=c("#0072B2", "#D55E00"), labels=c('Lower Merced', 'Upper Merced')) +
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(color='Merced samples') +
+  labs(fill='Source') +
+  labs(pch='Modern samples') +
+  theme_bw()
+```
+
+PCA of just the Merced Fm samples to see how our new data match Hall's
+```{r}
+# read in Hall heavy mineral data
+
+hall_data <- read.csv("../data/Hall1965_data/combined_heavy_mineral_data.csv",header=TRUE)
+
+# remove non-Merced samples
+hall_data <- hall_data[(hall_data$source == "Merced, upper" | hall_data$source == "Merced, lower"),]
+
+# select columns with mineral data (excludes source, sample ID, and strat height columns)
+
+minerals_only <- hall_data[,2:21]
+
+# select columns that overlap between this dataset and the QEMSCAN dataset
+
+minerals_only <- minerals_only[,-c(2,20)]
+
+# rescale values to 100%
+rescale_values <- function(sample){
+  new_sum <- sum(sample)
+  new_values <- sample/new_sum*100
+}
+
+rescaled_hall_minerals <- apply(minerals_only, 1, rescale_values)
+rescaled_hall_minerals <- as.data.frame(t(rescaled_hall_minerals))
+
+# add a very small number (.01) to each value because PCA has problems with zero values
+
+rescaled_hall_minerals <- rescaled_hall_minerals+.01
+```
+
+```{r}
+# read in QEMSCAN data
+qemscan_data <- read_excel("../data/QEMSCAN/RAG-data.xlsx", sheet=4, range=cell_rows(32:44))
+
+# drop MF22-19 as this sample does not contain significant heavy minerals
+qemscan_data <- qemscan_data[(qemscan_data$ClientID != "MF22-19"),]
+
+# create source column
+qemscan_data$source <- paste(qemscan_data$ClientID, qemscan_data$Measurment)
+
+# reformat columns to match Hall dataset
+qemscan_data$epidote.zoisite <- qemscan_data$Epidote+ qemscan_data$Zoisite
+qemscan_data$tremolite.actinolite <- qemscan_data$Tremolite + qemscan_data$Actinolite
+qemscan_data_minerals_only <- qemscan_data[,c(32,37:39,55,56,35,42:44,18,45,19,20,46,47,11,21)]
+
+# rename columns to match Hall dataset
+qemscan_data_minerals_only <- rename_with(qemscan_data_minerals_only, ~names(rescaled_hall_minerals))
+
+# rescale values to 100%
+rescaled_qemscan_minerals <- apply(qemscan_data_minerals_only, 1, rescale_values)
+rescaled_qemscan_minerals <- as.data.frame(t(rescaled_qemscan_minerals))
+
+# add a very small number (.01) to each value because PCA has problems with zero values
+
+rescaled_qemscan_minerals <- rescaled_qemscan_minerals+.01
+```
+
+```{r}
+# combine Hall and QEMSCAN data
+combined_data_minerals <- full_join(rescaled_hall_minerals, rescaled_qemscan_minerals)
+combined_source <- c(hall_data$source, qemscan_data$source)
+```
+
+```{r}
+# run robust pca on ilr-transformed data, using the a function from the "robCompositions" package. Notice you will get a warning that the covariance matrix has become singular during the iterations of the MCD algorithm —I don't *think* this is a huge issue but worth attention before publishing anything
+
+pca <- pcaCoDa(combined_data_minerals) 
+
+# look at a scree plot visualize how much variance is explained by each component (in this case the plot suggest there is little need to pay attention to anything beyond the first 2 principal components)
+
+plot(pca)
+
+# extract proportion of total variance explained by pc1 and pc2
+
+pca1var <- pca$eigenvalues[1]/sum(pca$eigenvalues)
+pca2var <- pca$eigenvalues[2]/sum(pca$eigenvalues)
+
+# extract pc1 and pc2 scores for each sample, add to the dataframe
+
+pc1 <- pca$scores[,1]
+pc2 <- pca$scores[,2]
+pdat <- data.frame(combined_data_minerals,combined_source,pc1,pc2)
+
+
+# also extract the loadings (how much each PC is influenced by each mineral)
+
+pc1_loadings <- pca$loadings[,1]*12
+pc2_loadings <- pca$loadings[,2]*12
+mineral <- rownames(pca$loadings)
+loadings <- data.frame(pc1_loadings,pc2_loadings,mineral)
+
+# make a biplot showing both sample scores and mineral loadings. There are canned functions that do this with one line of code but I want to customize it a bit by plotting different types of information on the modern and Merced samples —that's why this code seems so long and dense
+
+ggplot()+
+  geom_point(data=pdat,aes(x=pc1,y=pc2,color=combined_source),size=3)+
+  geom_segment(data=loadings,aes(x=0,xend=pc1_loadings,y=0,yend=pc2_loadings),arrow = arrow(length = unit(0.015, "npc")),colour="gray") +
+  geom_text(data=loadings,aes(x=pc1_loadings+.3*sign(pc1_loadings),y=pc2_loadings+.3*sign(pc2_loadings),label=mineral),size=3,colour="brown")+
+  coord_cartesian(xlim=c(-10,10))+
+  xlab("PC1")+
+  ylab("PC2")+
+  labs(color='Merced samples') +
+  theme_bw()
+```
+
+```{r}
+rescaled_hall_minerals$source <- hall_data$source
+rescaled_qemscan_minerals$source <- qemscan_data$source
+
+ggplot()+
+  geom_point(data=rescaled_hall_minerals,aes(x=glaucophane,y=hypersthene,color=source),size=3)+
+  geom_point(data=rescaled_qemscan_minerals,aes(x=glaucophane,y=hypersthene,color=source),size=3)+
+  xlab("glaucophane")+
+  ylab("hypersthene")+
+  theme_bw()
+```
+

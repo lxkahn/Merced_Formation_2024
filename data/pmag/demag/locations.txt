@@ -1,0 +1,3 @@
+tab	locations														
+age_high	age_low	age_unit	analysts	citations	continent_ocean	country	geologic_classes	lat_n	lat_s	lithologies	location	location_type	lon_e	lon_w	state_province
+773	598	ka		This study	North America	United States of America	Sedimentary	37.7	37.7	Sandstone	Thornton Beach	Stratigraphic Section	-122.5	-122.5	California

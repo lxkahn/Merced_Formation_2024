@@ -1,0 +1,17 @@
+tab	sites
+site	location	lat	lon	analysts	citations
+MF2	Thornton Beach	37.7	-122.5		This study
+MF3	Thornton Beach	37.7	-122.5		This study
+MF4	Thornton Beach	37.7	-122.5		This study
+MF5	Thornton Beach	37.7	-122.5		This study
+MF6	Thornton Beach	37.7	-122.5		This study
+MF7	Thornton Beach	37.7	-122.5		This study
+MF8	Thornton Beach	37.7	-122.5		This study
+MF9	Thornton Beach	37.7	-122.5		This study
+MF10	Thornton Beach	37.7	-122.5		This study
+MF11	Thornton Beach	37.7	-122.5		This study
+MF12	Thornton Beach	37.7	-122.5		This study
+MF13	Thornton Beach	37.7	-122.5		This study
+MF14	Thornton Beach	37.7	-122.5		This study
+MF15	Thornton Beach	37.7	-122.5		This study
+MF16	Thornton Beach	37.7	-122.5		This study

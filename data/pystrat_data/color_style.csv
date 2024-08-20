@@ -1,0 +1,10 @@
+﻿facies,r,g,b
+cover,255,255,255
+shelf,0,114,178
+nearshore,90,112,156
+foreshore,148,107,112
+embayment,124,110,134
+backshore,167,104,90
+pond/marsh,184,101,68
+aeolian dunes,213,94,0
+alluvial,199,98,42

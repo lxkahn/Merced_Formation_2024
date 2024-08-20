@@ -1,0 +1,3 @@
+tab	specimens
+specimen	sample	analysts	citations	method_codes	volume	weight
+MF8-78b	MF8-78		This study	LP-NOMAG		

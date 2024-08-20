@@ -1,0 +1,13 @@
+,site_info,,,,,,,,,,,,,,,,,,,,,
+site_id,MF7-,,,,,,,,,,,,,,,,,,,,,
+site_name,Merced Formation 7,,,,,,,,,,,,,,,,,,,,,
+site_lat,37.683649,(ºN),,,,,,,,,,,,,,,,,,,,
+site_long,237.503838,(ºE),,,,,,Sun Compass Information,,,,,,,,,Calculated Fields,,,,,
+site_elevation,0,,,,,,,,,,,,,,,,,,,,,
+sample_name,comment,strat_level,magnetic_core_strike,core_dip,bedding_strike,bedding_dip,correct_bedding_using_local_dec,shadow_angle,GMT_offset,year,month,days,hours,minutes,mass,runs,sun_core_strike,calculated_IGRF,IGRF_local_dec,calculated_mag_dec,core_strike,corrected_bedding_strike
+1a,sun compass orientation,1.4,138,36.0,304.0,60.0,no,172,-7,2023,6,1,12,45,1.0,nan,152.7,[13.124516361030643; 61.095337601570606; 47649.921935982566],13.124516361030643,14.699999999999989,152.7,nan
+2a,sun compass orientation,4.2,219,29.0,304.0,60.0,no,248,-7,2023,6,1,12,50,1.0,nan,232.8,[13.124515637497861; 61.09533760360839; 47649.921049238845],13.124515637497861,13.800000000000011,232.8,nan
+3a,sun compass orientation,6,250,20.0,304.0,60.0,no,275,-7,2023,6,1,12,53,1.0,nan,262.2,[13.124515203378198; 61.09533760483107; 47649.9205171926],13.124515203378198,12.199999999999989,262.2,nan
+4a,sun compass orientation,7.9,200,28.0,304.0,60.0,no,224,-7,2023,6,1,12,57,1.0,nan,214.6,[13.124514624551978; 61.09533760646131; 47649.91980779761],13.124514624551978,14.599999999999994,214.6,nan
+5a,sun compass orientation,9.3,189,42.0,304.0,60.0,no,213,-7,2023,6,1,12,59,1.0,nan,205.3,[13.124514335138839; 61.0953376072764; 47649.919453100105],13.124514335138839,16.30000000000001,205.3,nan
+6a,sun compass orientation,9.4,199,45.0,304.0,60.0,no,219,-7,2023,6,1,13,2,1.0,nan,213.9,[13.124513901019155; 61.095337608499094; 47649.91892105387],13.124513901019155,14.900000000000006,213.9,nan

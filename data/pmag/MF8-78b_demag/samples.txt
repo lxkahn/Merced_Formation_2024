@@ -1,0 +1,3 @@
+tab	samples
+analysts	azimuth	azimuth_dec_correction	bed_dip	bed_dip_direction	citations	dip	geologic_classes	geologic_types	height	lithologies	method_codes	sample	site
+	14.8	0.0	60.0	394.0	This study	-56.0			20.53		SO-CMD-NORTH	MF8-78	MF8
