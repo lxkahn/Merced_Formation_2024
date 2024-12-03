@@ -1,6 +1,6 @@
 # Merced Formation
 
-This repository contains code and data associated with the manuscript submitted to *Geochemistry, Geophysics, Geosystems*:
+This repository contains code and data associated with the manuscript submitted to *Journal of Sedimentary Research*:
 
 **The stratigraphic record of the arrival of the Sacramento and San Joaquin Rivers to the California coast**
 
